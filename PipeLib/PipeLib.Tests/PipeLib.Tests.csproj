@@ -51,6 +51,7 @@
     <Compile Include="Core\PipeEventArgsTests.cs" />
     <Compile Include="Core\ClientPipeTests.cs" />
     <Compile Include="Core\ServerPipeTests.cs" />
+    <Compile Include="Core\CoreIntegrationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -37,16 +37,27 @@ namespace PipeLib.Core
     {
         protected NamedPipeClientStream ClientPipeStream => (NamedPipeClientStream)_pipeStream;
 
+        /// <summary>Initialize a new instance of <see cref="ClientPipe"/></summary>
+        /// <param name="serverName">The server name</param>
+        /// <param name="pipeName">The pipe name</param>
+        /// <param name="asyncReaderStart">An <see cref="Action{BasicPipe}"/> used to read from the pipe</param>
         public ClientPipe(string serverName, string pipeName, Action<BasicPipe> asyncReaderStart)
+            : base()
         {
             _asyncReaderStart = asyncReaderStart;
             _pipeStream = new NamedPipeClientStream(serverName, pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         }
 
+        /// <summary>Wait for the client to connect. (Blocking)</summary>
         public void Connect() => ConnectAsync().GetAwaiter().GetResult();
 
+        /// <summary>Wait for the client to connect given a timeout. (Blocking)</summary>
+        /// <param name="timeout">Timeout in milliseconds</param>
+        /// <exception cref="InvalidOperationException">Raised when the connection times out</exception>
         public void Connect(int timeout) => ConnectAsync(timeout).GetAwaiter().GetResult();
 
+        /// <summary>Wait for the client to connect</summary>
+        /// <returns>A task that represents the asynchronous connect operation.</returns>
         public Task ConnectAsync() => ClientPipeStream.ConnectAsync()
             .ContinueWith(t =>
             {
@@ -54,6 +65,9 @@ namespace PipeLib.Core
                 RaisePipeConnected();
             });
 
+        /// <summary>Wait for the client to connect</summary>
+        /// <param name="timeout">Timeout in milliseconds</param>
+        /// <returns>A task that represents the asynchronous connect operation.</returns>
         public Task ConnectAsync(int timeout) => ClientPipeStream.ConnectAsync(timeout)
             .ContinueWith(t =>
             {

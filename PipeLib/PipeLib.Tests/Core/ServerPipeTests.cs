@@ -12,7 +12,7 @@ namespace PipeLib.Tests.Core
         #region Test setup and teardown + helper methods
 
         private const string pipeName = "PipeLib.TestPipe";
-        private const int testDelay = 100; // Milliseconds
+        private const int testDelay = 10; // Milliseconds
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -100,7 +100,57 @@ namespace PipeLib.Tests.Core
             Assert.IsTrue(_onServerPipeClosed);
         }
 
-        
+        [TestMethod]
+        public async Task ServerPipe_WriteEmptyString_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _server.WriteStringAsync(string.Empty);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ServerPipe_WriteNullString_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _server.WriteStringAsync(null);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ServerPipe_WriteEmptyByteArray_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _server.WriteBytesAsync(new byte[0]);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ServerPipe_WriteNullByteArray_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _server.WriteBytesAsync(null);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
 
         [TestMethod]
         public void ServerPipe_WhenClientSendsData_InvokesDataReceived()

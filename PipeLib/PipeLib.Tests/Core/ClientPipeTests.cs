@@ -12,7 +12,7 @@ namespace PipeLib.Tests.Core
         #region Test setup and teardown + helper methods
 
         private const string pipeName = "PipeLib.TestPipe";
-        private const int testDelay = 50; // 50ms
+        private const int testDelay = 10; // 50ms
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -128,11 +128,62 @@ namespace PipeLib.Tests.Core
             void act()
             {
                 _client.Connect(10);
-                Thread.Sleep(10 + testDelay);
             }
 
             // Assert
             Assert.ThrowsException<InvalidOperationException>((Action)act);
+        }
+
+        [TestMethod]
+        public async Task ClientPipe_WriteEmptyString_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _client.WriteStringAsync(string.Empty);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ClientPipe_WriteNullString_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _client.WriteStringAsync(null);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ClientPipe_WriteEmptyByteArray_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _client.WriteBytesAsync(new byte[0]);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public async Task ClientPipe_WriteNullByteArray_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            WaitForClientConnection();
+
+            // Act
+            Task func() => _client.WriteBytesAsync(null);
+
+            // Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
         }
     }
 }

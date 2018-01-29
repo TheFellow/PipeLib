@@ -36,17 +36,30 @@ using System.Threading.Tasks;
 
 namespace PipeLib.Core
 {
+    /// <summary>
+    /// Abstract base class for wrapping named pipes and their connection
+    /// </summary>
     public abstract class BasicPipe : IDisposable
     {
+        /// <summary>Raised when data is received</summary>
         public event EventHandler<PipeEventArgs> DataReceived;
+
+        /// <summary>Raised when the pipe is closed</summary>
         public event EventHandler<EventArgs> PipeClosed;
+
+        /// <summary>Raised when the pipe is connected</summary>
         public event EventHandler<EventArgs> PipeConnected;
 
+        /// <summary>The <see cref="PipeStream"/> being wrapped</summary>
         protected PipeStream _pipeStream;
+
+        /// <summary>An <see cref="Action"/> used to start the reader</summary>
         protected Action<BasicPipe> _asyncReaderStart;
 
+        /// <summary>Initialize a new instance of a <see cref="BasicPipe"/></summary>
         public BasicPipe() { }
 
+        /// <summary>Close the pipe</summary>
         public void Close()
         {
             if (_pipeStream?.IsConnected ?? false)
@@ -56,8 +69,10 @@ namespace PipeLib.Core
             _pipeStream = null;
         }
 
+        /// <summary>Return the <see cref="PipeStream.IsConnected"/> value of the underlying <see cref="PipeStream"/></summary>
         public bool IsConnected => _pipeStream.IsConnected;
 
+        /// <summary>Calls <see cref="PipeStream.Flush"/> on the underlying <see cref="PipeStream"/></summary>
         public void Flush() => _pipeStream?.Flush();
 
         protected void RaisePipeConnected() => PipeConnected?.Invoke(this, EventArgs.Empty);
@@ -100,10 +115,18 @@ namespace PipeLib.Core
 
         #region Write methods
 
-        public Task WriteStringAsync(string str) => WriteBytesAsync(Encoding.UTF8.GetBytes(str));
+        /// <summary>Writes a <see cref="string"/> to the <see cref="PipeStream"/></summary>
+        /// <param name="str">The string to write</param>
+        /// <returns></returns>
+        public Task WriteStringAsync(string str) => WriteBytesAsync(Encoding.UTF8.GetBytes(str ?? throw new InvalidOperationException("Cannot transmit zero-length data.")));
 
+        /// <summary>Writes the bytes to the <see cref="PipeStream"/></summary>
+        /// <param name="bytes">Array of bytes to write</param>
+        /// <returns></returns>
         public Task WriteBytesAsync(byte[] bytes)
         {
+            if ((bytes?.Length ?? 0) == 0)
+                throw new InvalidOperationException("Cannot transmit zero-length data.");
             var dataLengthBytes = BitConverter.GetBytes(bytes.Length); // 4 bytes
             var allBytes = dataLengthBytes.Concat(bytes).ToArray();
 
