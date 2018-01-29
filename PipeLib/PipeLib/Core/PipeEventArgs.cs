@@ -30,17 +30,20 @@
 
 namespace PipeLib.Core
 {
-    public class PipeEventArgs
+    /// <summary>
+    /// Arguments for a pipe message
+    /// </summary>
+    public sealed class PipeEventArgs
     {
-        public byte[] Data { get; protected set; }
-        public string String { get; protected set; }
+        public byte[] Data { get; set; }
+        public string String { get; set; }
 
         public PipeEventArgs(string str) => String = str;
         public PipeEventArgs(byte[] data) => Data = data;
 
-        public int Len => IsString ? String.Length : Data.Length;
+        public int Length => IsString ? String.Length : Data.Length;
         public bool IsString => Data == null;
         public bool IsBytes => Data != null;
-        public override string ToString() => IsString ? String : $"byte[{Len}]";
+        public override string ToString() => IsString ? String : $"byte[{Length}]";
     }
 }
