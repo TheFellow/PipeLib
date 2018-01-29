@@ -49,11 +49,14 @@ namespace PipeLib.Core
 
         public void Close()
         {
-            _pipeStream?.WaitForPipeDrain();
+            if (_pipeStream?.IsConnected ?? false)
+                _pipeStream?.WaitForPipeDrain();
             _pipeStream?.Close();
             _pipeStream?.Dispose();
             _pipeStream = null;
         }
+
+        public bool IsConnected => _pipeStream.IsConnected;
 
         public void Flush() => _pipeStream?.Flush();
 

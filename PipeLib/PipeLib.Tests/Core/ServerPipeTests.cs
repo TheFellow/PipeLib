@@ -12,7 +12,7 @@ namespace PipeLib.Tests.Core
         #region Test setup and teardown + helper methods
 
         private const string pipeName = "PipeLib.TestPipe";
-        private const int testDelay = 50; // 50ms
+        private const int testDelay = 100; // Milliseconds
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -82,6 +82,7 @@ namespace PipeLib.Tests.Core
 
             // Assert
             Assert.IsTrue(_onServerConnect);
+            Assert.IsTrue(_server.IsConnected);
         }
 
         [TestMethod]

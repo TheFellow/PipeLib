@@ -47,8 +47,18 @@ namespace PipeLib.Core
 
         public void Connect(int timeout) => ConnectAsync(timeout).GetAwaiter().GetResult();
 
-        public Task ConnectAsync() => ClientPipeStream.ConnectAsync().ContinueWith(t => _asyncReaderStart(this));
+        public Task ConnectAsync() => ClientPipeStream.ConnectAsync()
+            .ContinueWith(t =>
+            {
+                _asyncReaderStart(this);
+                RaisePipeConnected();
+            });
 
-        public Task ConnectAsync(int timeout) => ClientPipeStream.ConnectAsync(timeout).ContinueWith(t => _asyncReaderStart(this));
+        public Task ConnectAsync(int timeout) => ClientPipeStream.ConnectAsync(timeout)
+            .ContinueWith(t =>
+            {
+                _asyncReaderStart(this);
+                RaisePipeConnected();
+            });
     }
 }
