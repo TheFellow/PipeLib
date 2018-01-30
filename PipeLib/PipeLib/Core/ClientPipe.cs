@@ -27,13 +27,14 @@
 // Based on Marc Clifton's CodeProject article: https://www.codeproject.com/Articles/1179195/Full-Duplex-Asynchronous-Read-Write-with-Named-Pip?msg=5480792#_comments
 //
 
+using PipeLib.Interfaces;
 using System;
 using System.IO.Pipes;
 using System.Threading.Tasks;
 
 namespace PipeLib.Core
 {
-    public class ClientPipe : BasicPipe
+    public class ClientPipe : BasicPipe, IConnectable
     {
         protected NamedPipeClientStream ClientPipeStream => (NamedPipeClientStream)_pipeStream;
 

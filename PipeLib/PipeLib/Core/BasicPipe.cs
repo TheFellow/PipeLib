@@ -27,6 +27,7 @@
 // Based on Marc Clifton's CodeProject article: https://www.codeproject.com/Articles/1179195/Full-Duplex-Asynchronous-Read-Write-with-Named-Pip?msg=5480792#_comments
 //
 
+using PipeLib.Interfaces;
 using PipeLib.Utility;
 using System;
 using System.Collections.Generic;
@@ -40,7 +41,7 @@ namespace PipeLib.Core
     /// <summary>
     /// Abstract base class for wrapping named pipes and their connection
     /// </summary>
-    public abstract class BasicPipe : IDisposable
+    public abstract class BasicPipe : IDisposable, IWriteStringAsync, IWriteBytesAsync
     {
         /// <summary>Raised when data is received</summary>
         public event EventHandler<PipeEventArgs> DataReceived;
@@ -167,6 +168,8 @@ namespace PipeLib.Core
         }
 
         #endregion
+
+        public override string ToString() => $"Pipe {Id} " + base.ToString();
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
