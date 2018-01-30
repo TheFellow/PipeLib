@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Text;
-
+using System.Threading.Tasks;
 using PipeLib.Core;
 
 namespace PipeLib
@@ -21,6 +21,11 @@ namespace PipeLib
                 MessageReceived?.Invoke(pipe.Id, e.String);
             }
         }
+
+        public void Connect() => ((ClientPipe)_pipe).Connect();
+        public void Connect(int timeout) => ((ClientPipe)_pipe).Connect(timeout);
+        public Task ConectAsync() => ((ClientPipe)_pipe).ConnectAsync();
+        public Task ConnectAsync(int timeout) => ((ClientPipe)_pipe).ConnectAsync(timeout);
 
         /// <summary>Method called when a message is received</summary>
         public Action<int, string> MessageReceived { get; set; }

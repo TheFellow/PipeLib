@@ -10,7 +10,7 @@ namespace PipeLib
     public abstract class PipeClientServerBase
     {
         private string _pipeName;
-        private BasicPipe _pipe;
+        protected BasicPipe _pipe;
         protected Dictionary<int, BasicPipe> _connections = new Dictionary<int, BasicPipe>();
 
         public PipeClientServerBase(string pipeName)
@@ -37,7 +37,7 @@ namespace PipeLib
                 lock (_connections)
                 {
                     _connections.Add(pipe.Id, pipe);
-                    InitPipe();
+                    InitPipe(); // Wait for another connection
                 }
             }
         }
