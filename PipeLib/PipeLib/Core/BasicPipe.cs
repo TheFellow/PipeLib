@@ -27,6 +27,7 @@
 // Based on Marc Clifton's CodeProject article: https://www.codeproject.com/Articles/1179195/Full-Duplex-Asynchronous-Read-Write-with-Named-Pip?msg=5480792#_comments
 //
 
+using PipeLib.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
@@ -56,8 +57,14 @@ namespace PipeLib.Core
         /// <summary>An <see cref="Action"/> used to start the reader</summary>
         protected Action<BasicPipe> _asyncReaderStart;
 
+        protected static Lockable<int> PipeCount = new Lockable<int>(0);
+
         /// <summary>Initialize a new instance of a <see cref="BasicPipe"/></summary>
-        public BasicPipe() { }
+        public BasicPipe()
+        {
+            int id = PipeCount.Value += 1;
+            Id = id;
+        }
 
         /// <summary>Close the pipe</summary>
         public void Close()
@@ -74,6 +81,9 @@ namespace PipeLib.Core
 
         /// <summary>Calls <see cref="PipeStream.Flush"/> on the underlying <see cref="PipeStream"/></summary>
         public void Flush() => _pipeStream?.Flush();
+
+        /// <summary>The Id of this <see cref="BasicPipe"/></summary>
+        public readonly int Id;
 
         protected void RaisePipeConnected() => PipeConnected?.Invoke(this, EventArgs.Empty);
 

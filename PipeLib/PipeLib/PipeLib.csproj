@@ -44,7 +44,11 @@
     <Compile Include="Core\ClientPipe.cs" />
     <Compile Include="Core\PipeEventArgs.cs" />
     <Compile Include="Core\ServerPipe.cs" />
+    <Compile Include="PipeClientServerBase.cs" />
+    <Compile Include="PipeStringClient.cs" />
+    <Compile Include="PipeStringServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utility\Lockable.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
