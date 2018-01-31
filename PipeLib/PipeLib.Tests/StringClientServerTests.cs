@@ -9,14 +9,16 @@ namespace PipeLib.Tests
     public class StringClientServerTests
     {
         private const string PipeName = nameof(StringClientServerTests);
-        private StringPipeServer _server;
-        private StringPipeClient _client;
 
+        private StringPipeServer _server;
         private bool _serverIsConnected;
         private string _serverReceived;
+        private ManualResetEventSlim _areServer;
 
+        private StringPipeClient _client;
         private bool _clientIsConnected;
         private string _clientReceived;
+        private ManualResetEventSlim _areClient;
 
 
         [TestInitialize]
@@ -26,20 +28,30 @@ namespace PipeLib.Tests
             {
                 PipeConnected = () => _serverIsConnected = true,
                 PipeClosed = () => _serverIsConnected = false,
-                MessageReceived = (id, str) => _serverReceived = str
+                MessageReceived = (id, str) =>
+                {
+                    _serverReceived = str;
+                    _areServer.Set();
+                }
             };
             _client = new StringPipeClient(PipeName)
             {
                 PipeConnected = () => _clientIsConnected = true,
                 PipeClosed = () => _clientIsConnected = false,
-                MessageReceived = (id, str) => _clientReceived = str
+                MessageReceived = (id, str) =>
+                {
+                    _clientReceived = str;
+                    _areClient.Set();
+                }
             };
 
             _serverReceived = null;
             _serverIsConnected = false;
+            _areServer = new ManualResetEventSlim();
 
             _clientReceived = null;
             _clientIsConnected = false;
+            _areClient = new ManualResetEventSlim();
         }
 
         [TestCleanup]
@@ -49,15 +61,24 @@ namespace PipeLib.Tests
             _client?.Dispose();
         }
 
+        private void WaitForCallbacks()
+        {
+            _areServer.Wait();
+            _areClient.Wait();
+        }
+
         [TestMethod]
-        public async Task StringPipe_SendAndReceive()
+        public void StringPipe_SendAndReceive()
         {
             // Arrange
             _client.Connect();
             string expected = nameof(StringPipe_SendAndReceive);
 
             // Act
-            await Task.WhenAll(new Task[] { _client.WriteStringAsync(expected), _server.WriteStringAsync(expected) });
+            _client.WriteStringAsync(expected);
+            _server.WriteStringAsync(expected);
+
+            WaitForCallbacks();
 
             // Assert
             Assert.IsTrue(_clientIsConnected);

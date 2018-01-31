@@ -11,23 +11,26 @@ namespace PipeLib.Tests.Core
     {
         #region Test setup and teardown + helper methods
 
-        private const string pipeName = "PipeLib.TestPipe";
+        private const string pipeName = nameof(ServerPipeTests);
         private const int testDelay = 10; // Milliseconds
 
         private ServerPipe _server;
         private ClientPipe _client;
-        private bool _onServerConnect;
         private bool _onServerPipeClosed;
         private bool _onServerDataReceived;
         private string _onServerDataReceivedData;
 
+        private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
+        private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
+
         [TestInitialize]
         public void TestInitialize()
         {
+            _mreConnect.Reset();
+            _mreDisconnect.Reset();
             _server = new ServerPipe(pipeName, p => p.StartStringReader());
             _client = new ClientPipe(".", pipeName, p => p.StartStringReader());
 
-            _onServerConnect = false;
             _onServerPipeClosed = false;
             _onServerDataReceived = false;
             _onServerDataReceivedData = string.Empty;
@@ -46,20 +49,18 @@ namespace PipeLib.Tests.Core
         private void OnServerPipeClosed(object sender, EventArgs e)
         {
             _onServerPipeClosed = true;
+            _mreDisconnect.Set();
         }
 
         private void OnServerConnect(object sender, EventArgs e)
         {
-            _onServerConnect = true;
+            _mreConnect.Set();
         }
 
         private void WaitForClientConnection()
         {
             _client.Connect();
-            Thread.Sleep(testDelay); // Yield
-
-            if (!_onServerConnect)
-                Assert.Inconclusive("The client connection was never established.");
+            _mreConnect.Wait();
         }
 
         [TestCleanup]
@@ -72,20 +73,6 @@ namespace PipeLib.Tests.Core
         #endregion
 
         [TestMethod]
-        public void ServerPipe_WhenClientConnects_InvokesPipeConnected()
-        {
-            // Arrange
-
-            // Act
-            _client.Connect();
-            Thread.Sleep(testDelay); // Yield
-
-            // Assert
-            Assert.IsTrue(_onServerConnect);
-            Assert.IsTrue(_server.IsConnected);
-        }
-
-        [TestMethod]
         public void ServerPipe_WhenClientDisconnects_InvokesPipeClosed()
         {
             // Arrange
@@ -94,7 +81,8 @@ namespace PipeLib.Tests.Core
             // Act
             _client.Close();
 
-            Thread.Sleep(testDelay); // Yield
+            if (!_mreDisconnect.Wait(50))
+                Assert.Inconclusive("Disconnect was not signaled wihtin the timeout");
 
             // Assert
             Assert.IsTrue(_onServerPipeClosed);

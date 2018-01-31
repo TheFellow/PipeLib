@@ -54,8 +54,7 @@ namespace PipeLib.Core
                 PipeOptions.Asynchronous);
 
             ServerPipeStream.WaitForConnectionAsync()
-                .ContinueWith(t => ClientConnected())
-                .ConfigureAwait(false);
+                .ContinueWith(t => ClientConnected());
         }
 
         protected void ClientConnected()
