@@ -21,23 +21,24 @@ namespace PipeLib.Tests.Core
         [TestInitialize]
         public void TestInitialize()
         {
-            var areServer = new ManualResetEventSlim();
-            var areClient = new ManualResetEventSlim();
+            var connected = new CountdownEvent(4);
 
             _stringServer = new ServerPipe(pipeName, p => p.StartStringReader());
             _stringClient = new ClientPipe(".", pipeName, p => p.StartStringReader());
             _binaryServer = new ServerPipe(pipeName, p => p.StartByteReader());
             _binaryClient = new ClientPipe(".", pipeName, p => p.StartByteReader());
 
-            _stringServer.PipeConnected += (o, e) => areServer.Set();
-            _stringClient.PipeConnected += (o, e) => areClient.Set();
+            _stringServer.PipeConnected += (o, e) => connected.Signal();
+            _stringClient.PipeConnected += (o, e) => connected.Signal();
+            _binaryServer.PipeConnected += (o, e) => connected.Signal();
+            _binaryClient.PipeConnected += (o, e) => connected.Signal();
 
             _stringClient.Connect();
             _binaryClient.Connect();
 
             // Wait for the connection
-            areClient.Wait();
-            areServer.Wait();
+            if (!connected.Wait(50))
+                Assert.Inconclusive("Connections were not established in time");
         }
 
         [TestCleanup]
