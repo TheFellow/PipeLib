@@ -101,7 +101,6 @@ namespace PipeLib.Tests.Core
 
             // Act
             _server.Close();
-
             _mreDisconnect.Wait();
 
             // Assert
@@ -118,7 +117,7 @@ namespace PipeLib.Tests.Core
             string expected = "Data to transmit";
 
             // Act
-            _server.WriteStringAsync(expected).GetAwaiter().GetResult();
+            _server.WriteStringAsync(expected);
             _mreDataReceived.Wait();
 
             // Assert
