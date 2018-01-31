@@ -66,8 +66,7 @@ namespace PipeLib.Core
         /// <summary>Initialize a new instance of a <see cref="BasicPipe"/></summary>
         public BasicPipe()
         {
-            int id = PipeCount.Value += 1;
-            Id = id;
+            PipeCount.ExecuteInLock(i => i + 1);
         }
 
         /// <summary>Close the pipe</summary>
