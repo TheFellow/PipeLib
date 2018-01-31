@@ -12,7 +12,6 @@ namespace PipeLib.Tests.Core
         #region Test setup and teardown + helper methods
 
         private const string pipeName = nameof(ServerPipeTests);
-        private const int testDelay = 10; // Milliseconds
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -22,12 +21,15 @@ namespace PipeLib.Tests.Core
 
         private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
         private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
+        private ManualResetEventSlim _mreDataReceived = new ManualResetEventSlim();
 
         [TestInitialize]
         public void TestInitialize()
         {
             _mreConnect.Reset();
             _mreDisconnect.Reset();
+            _mreDataReceived.Reset();
+
             _server = new ServerPipe(pipeName, p => p.StartStringReader());
             _client = new ClientPipe(".", pipeName, p => p.StartStringReader());
 
@@ -44,6 +46,7 @@ namespace PipeLib.Tests.Core
         {
             _onServerDataReceived = true;
             _onServerDataReceivedData = e.String;
+            _mreDataReceived.Set();
         }
 
         private void OnServerPipeClosed(object sender, EventArgs e)
@@ -149,7 +152,7 @@ namespace PipeLib.Tests.Core
 
             // Act
             _client.WriteStringAsync(expected).GetAwaiter().GetResult();
-            Thread.Sleep(testDelay); // Yield
+            _mreDataReceived.Wait();
 
             // Assert
             Assert.IsTrue(_onServerDataReceived);

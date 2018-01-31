@@ -12,7 +12,6 @@ namespace PipeLib.Tests.Core
         #region Test setup and teardown + helper methods
 
         private const string pipeName = "PipeLib.TestPipe";
-        private const int testDelay = 10; // 50ms
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -21,9 +20,17 @@ namespace PipeLib.Tests.Core
         private bool _onClientDataReceived;
         private string _onClientDataReceivedData;
 
+        private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
+        private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
+        private ManualResetEventSlim _mreDataReceived = new ManualResetEventSlim();
+
         [TestInitialize]
         public void TestInitialize()
         {
+            _mreConnect.Reset();
+            _mreDisconnect.Reset();
+            _mreDataReceived.Reset();
+
             _server = new ServerPipe(pipeName, p => p.StartStringReader());
             _client = new ClientPipe(".", pipeName, p => p.StartStringReader());
 
@@ -41,24 +48,25 @@ namespace PipeLib.Tests.Core
         {
             _onClientDataReceived = true;
             _onClientDataReceivedData = e.String;
+            _mreDataReceived.Set();
         }
 
         private void OnClientPipeClosed(object sender, EventArgs e)
         {
             _onclientPipeClosed = true;
+            _mreDisconnect.Set();
         }
 
         private void OnClientConnect(object sender, EventArgs e)
         {
             _onClientConnect = true;
+            _mreConnect.Set();
         }
 
         private void WaitForClientConnection()
         {
             _client.Connect();
-            Thread.Sleep(testDelay); // Yield
-
-            if (!_onClientConnect)
+            if (!_mreConnect.Wait(50))
                 Assert.Inconclusive("The client connection was never established.");
         }
 
@@ -78,7 +86,7 @@ namespace PipeLib.Tests.Core
 
             // Act
             _client.Connect();
-            Thread.Sleep(testDelay); // Yield
+            _mreConnect.Wait();
 
             // Assert
             Assert.IsTrue(_onClientConnect);
@@ -94,7 +102,7 @@ namespace PipeLib.Tests.Core
             // Act
             _server.Close();
 
-            Thread.Sleep(testDelay); // Yield
+            _mreDisconnect.Wait();
 
             // Assert
             Assert.IsTrue(_onclientPipeClosed);
@@ -111,7 +119,7 @@ namespace PipeLib.Tests.Core
 
             // Act
             _server.WriteStringAsync(expected).GetAwaiter().GetResult();
-            Thread.Sleep(testDelay); // Yield
+            _mreDataReceived.Wait();
 
             // Assert
             Assert.IsTrue(_onClientDataReceived);
