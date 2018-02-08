@@ -106,7 +106,7 @@ namespace PipeLib.Tests.Core
         }
 
         [TestMethod]
-        public void ServerPipe_WhenClientSendsData_InvokesDataReceived()
+        public void ServerPipe_WhenClientSendsData_InvokesDataReceivedWithCorrectData()
         {
             // Arrange
             WaitForClientConnection();
