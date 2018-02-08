@@ -7,43 +7,45 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PipeLib.Core;
 
+using static PipeLib.Tests.Constants;
+
 namespace PipeLib.Tests.Core
 {
     [TestClass]
     public class CoreIntegrationTests
     {
         private const string pipeName = nameof(CoreIntegrationTests);
-
-        private ServerPipe _binaryServer;
-        private ClientPipe _binaryClient;
+        private ServerPipe _serverPipe;
+        private ClientPipe _clientPipe;
         private Random rand = new Random();
 
         [TestInitialize]
         public void TestInitialize()
         {
-            var connected = new CountdownEvent(4);
+            var connected = new CountdownEvent(2);
 
-            _binaryServer = new ServerPipe(pipeName);
-            _binaryClient = new ClientPipe(".", pipeName);
+            _serverPipe = new ServerPipe(pipeName);
+            _clientPipe = new ClientPipe(".", pipeName);
 
-            _binaryServer.PipeConnected += (o, e) => connected.Signal();
-            _binaryClient.PipeConnected += (o, e) => connected.Signal();
+            _serverPipe.PipeConnected += (o, e) => connected.Signal();
+            _clientPipe.PipeConnected += (o, e) => connected.Signal();
 
-            _binaryClient.Connect();
+            _clientPipe.Connect();
 
             // Wait for the connection
-            if (!connected.Wait(50))
-                Assert.Inconclusive("Connections were not established in time");
+            if (!connected.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_CONNECT);
         }
 
         [TestCleanup]
         public void TestCleanup()
         {
-            _binaryServer?.Dispose();
-            _binaryClient?.Dispose();
+            _serverPipe?.Dispose();
+            _clientPipe?.Dispose();
         }
 
         [DataTestMethod]
+        //[DataRow(0)] // Throws; tested below.
         [DataRow(1)]
         [DataRow(2)]
         [DataRow(128)]
@@ -57,7 +59,7 @@ namespace PipeLib.Tests.Core
         public void ClientServer_WriteData_TransmitsDataSuccessfully(int bytes)
         {
             // Arrange
-            var signal = new CountdownEvent(4);
+            var signal = new CountdownEvent(2);
 
             var sb = new StringBuilder(bytes);
 
@@ -72,27 +74,51 @@ namespace PipeLib.Tests.Core
             byte[] binaryDataActualServer = null;
             byte[] binaryDataActualClient = null;
 
-            _binaryServer.DataReceived += (o, e) =>
+            _serverPipe.DataReceived += (o, e) =>
             {
                 binaryDataActualServer = e.Data;
                 signal.Signal();
             };
-            _binaryClient.DataReceived += (o, e) =>
+            _clientPipe.DataReceived += (o, e) =>
             {
                 binaryDataActualClient = e.Data;
                 signal.Signal();
             };
 
             // Act
-            _binaryServer.WriteBytesAsync(binaryDataExpected);
-            _binaryClient.WriteBytesAsync(binaryDataExpected);
+            _serverPipe.WriteBytesAsync(binaryDataExpected);
+            _clientPipe.WriteBytesAsync(binaryDataExpected);
 
             // Wait for the callbacks
-            signal.Wait();
+            if (!signal.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_CALLBACK);
 
             // Assert
             CollectionAssert.AreEqual(binaryDataExpected, binaryDataActualServer, "Binary server received incorrect data");
             CollectionAssert.AreEqual(binaryDataExpected, binaryDataActualClient, "Binary client received incorrect data");
+        }
+
+        [DataTestMethod]
+        [DataRow("Client")]
+        [DataRow("Server")]
+        public void ClientServer_ZeroBytes_ThrowsInvalidOperationException(string clientServer)
+        {
+            // Arrange
+            BasicPipe p;
+            if (clientServer == "Client")
+            {
+                p = new ClientPipe(".", pipeName);
+            }
+            else
+            {
+                p = new ServerPipe(pipeName);
+            }
+
+            // Act
+            Action act = () => p.WriteBytesAsync(new byte[0]);
+
+            // Assert
+            Assert.ThrowsException<InvalidOperationException>(act);
         }
     }
 }

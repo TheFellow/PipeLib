@@ -43,7 +43,7 @@ namespace PipeLib.Core
     /// </summary>
     public abstract class BasicPipe : IDisposable
     {
-        private const string ZeroLengthError = "Cannot transmit zero-length data.";
+        private const string ZERO_LENGTH_ERROR = "Cannot transmit zero-length data.";
 
         /// <summary>Raised when data is received</summary>
         public event EventHandler<PipeEventArgs> DataReceived;
@@ -54,17 +54,19 @@ namespace PipeLib.Core
         /// <summary>Raised when the pipe is connected</summary>
         public event EventHandler<EventArgs> PipeConnected;
 
-
         /// <summary>The <see cref="PipeStream"/> being wrapped</summary>
         protected PipeStream _pipeStream;
-        
+
         protected static Lockable<int> PipeCount = new Lockable<int>(0);
 
         /// <summary>Initialize a new instance of a <see cref="BasicPipe"/></summary>
         public BasicPipe()
         {
-            PipeCount.ExecuteInLock(i => i + 1);
-            StartByteReader();
+            PipeCount.ExecuteInLock(i =>
+            {
+                Id = i;
+                return i + 1;
+            });
         }
 
         /// <summary>Close the pipe</summary>
@@ -84,7 +86,7 @@ namespace PipeLib.Core
         public void Flush() => _pipeStream?.Flush();
 
         /// <summary>The Id of this <see cref="BasicPipe"/></summary>
-        public readonly int Id;
+        public int? Id { get; protected set; } = null;
 
         protected void RaisePipeConnected() => PipeConnected?.Invoke(this, EventArgs.Empty);
 
@@ -130,7 +132,7 @@ namespace PipeLib.Core
         public Task WriteBytesAsync(byte[] bytes)
         {
             if ((bytes?.Length ?? 0) == 0)
-                throw new InvalidOperationException(ZeroLengthError);
+                throw new InvalidOperationException(ZERO_LENGTH_ERROR);
             var dataLengthBytes = BitConverter.GetBytes(bytes.Length); // 4 bytes
             var allBytes = dataLengthBytes.Concat(bytes).ToArray();
 

@@ -12,7 +12,7 @@ namespace PipeLib.Tests.Core
     {
         #region Test setup and teardown + helper methods
 
-        private const string pipeName = "PipeLib.TestPipe";
+        private string pipeName = typeof(ClientPipeTests).FullName;
 
         private ServerPipe _server;
         private ClientPipe _client;
@@ -67,7 +67,7 @@ namespace PipeLib.Tests.Core
         private void WaitForClientConnection()
         {
             _client.Connect();
-            if (!_mreConnect.Wait(50))
+            if (!_mreConnect.Wait(Constants.TIMEOUT_MS))
                 Assert.Inconclusive("The client connection was never established.");
         }
 
@@ -124,7 +124,7 @@ namespace PipeLib.Tests.Core
 
             // Assert
             Assert.IsTrue(_onClientDataReceived);
-            Assert.AreEqual(expectedString, _onClientDataReceivedData);
+            Assert.AreEqual(expectedString, Encoding.UTF8.GetString(_onClientDataReceivedData));
         }
 
         [TestMethod]
@@ -141,19 +141,6 @@ namespace PipeLib.Tests.Core
 
             // Assert
             Assert.ThrowsException<InvalidOperationException>((Action)act);
-        }
-
-        [TestMethod]
-        public async Task ClientPipe_WriteEmptyString_ThrowsInvalidOperationException()
-        {
-            // Arrange
-            WaitForClientConnection();
-
-            // Act
-            Task func() => _client.WriteBytesAsync(new byte[0]);
-
-            // Assert
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
         }
 
         [TestMethod]

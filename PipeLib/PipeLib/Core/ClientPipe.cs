@@ -41,7 +41,6 @@ namespace PipeLib.Core
         /// <summary>Initialize a new instance of <see cref="ClientPipe"/></summary>
         /// <param name="serverName">The server name</param>
         /// <param name="pipeName">The pipe name</param>
-        /// <param name="asyncReaderStart">An <see cref="Action{BasicPipe}"/> used to read from the pipe</param>
         public ClientPipe(string serverName, string pipeName)
             : base()
         {

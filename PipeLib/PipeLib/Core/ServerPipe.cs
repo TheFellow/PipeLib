@@ -26,7 +26,6 @@
 //
 // Based on Marc Clifton's CodeProject article: https://www.codeproject.com/Articles/1179195/Full-Duplex-Asynchronous-Read-Write-with-Named-Pip?msg=5480792#_comments
 //
-
 using System;
 using System.IO.Pipes;
 

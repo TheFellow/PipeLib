@@ -49,6 +49,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constants.cs" />
     <Compile Include="Core\PipeEventArgsTests.cs" />
     <Compile Include="Core\ClientPipeTests.cs" />
     <Compile Include="Core\ServerPipeTests.cs" />
