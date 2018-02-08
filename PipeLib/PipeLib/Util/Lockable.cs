@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PipeLib.Utility
+namespace PipeLib.Util
 {
     /// <summary>
     /// Provides thread safety via locking

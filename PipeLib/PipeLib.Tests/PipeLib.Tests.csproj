@@ -55,6 +55,7 @@
     <Compile Include="Core\ServerPipeTests.cs" />
     <Compile Include="Core\CoreIntegrationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PipeClientTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

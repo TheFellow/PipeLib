@@ -28,7 +28,7 @@
 //
 
 using PipeLib.Interfaces;
-using PipeLib.Utility;
+using PipeLib.Util;
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
