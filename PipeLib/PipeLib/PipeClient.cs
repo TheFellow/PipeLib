@@ -10,63 +10,41 @@ using System.Threading.Tasks;
 
 namespace PipeLib
 {
-    public class PipeClient : IConnectable
+    public class PipeClient<T>
+        : WriteMessage<T>, IConnectDisconnect, IConnectable
+        where T : class
     {
-        protected readonly ClientPipe _clientPipe;
+        public Action OnConnect { get; set; }
+        public Action OnDisconnect { get; set; }
 
-        public PipeClient(string pipeServer, string pipeName)
+        protected ClientPipe ClientPipe => (ClientPipe)BasicPipe;
+
+        public PipeClient(string pipeName)
+            : this(".", pipeName)
         {
-            _clientPipe = new ClientPipe(pipeServer, pipeName);
         }
 
-        public PipeClient(string pipeName) : this(".", pipeName) { }
+        public PipeClient(string pipeServer, string pipeName)
+            : base()
+        {
+            BasicPipe = new ClientPipe(pipeServer, pipeName);
+            ClientPipe.DataReceived += OnDataReceived;
+            ClientPipe.PipeConnected += (sender, e) => OnConnect?.Invoke();
+            ClientPipe.PipeClosed += (sender, e) => OnDisconnect?.Invoke();
+        }
 
-        #region IConnectable via _clientPipe
+        public override string ToString() => $"C{ClientPipe.Id}<{typeof(T).Name}>";
+        
+        #region IConnectable via ClientPipe
 
-        public void Connect() => _clientPipe.Connect();
+        public void Connect() => ((IConnectable)ClientPipe).Connect();
 
-        public void Connect(int timeout) => _clientPipe.Connect(timeout);
+        public void Connect(int timeout) => ((IConnectable)ClientPipe).Connect(timeout);
 
-        public Task ConnectAsync() => _clientPipe.ConnectAsync();
+        public Task ConnectAsync() => ((IConnectable)ClientPipe).ConnectAsync();
 
-        public Task ConnectAsync(int timeout) => _clientPipe.ConnectAsync(timeout);
+        public Task ConnectAsync(int timeout) => ((IConnectable)ClientPipe).ConnectAsync(timeout);
 
         #endregion
-    }
-
-    public class PipeClient<T> : PipeClient
-        where T : class, new()
-    {
-        public PipeClient(string pipeName)
-            : base(pipeName)
-        {
-            _clientPipe.DataReceived += OnDataReceived;
-        }
-
-
-        public PipeClient(string pipeServer, string pipeName)
-            : base(pipeServer, pipeName)
-        {
-        }
-
-
-        public void WriteObjectAsync(T obj)
-        {
-            var formatter = new BinaryFormatter();
-            var ms = new MemoryStream();
-            formatter.Serialize(ms, obj);
-            _clientPipe.WriteBytesAsync(ms.ToArray());
-        }
-
-        public Action<T> Message;
-
-        private void OnDataReceived(object sender, PipeEventArgs e)
-        {
-            var formatter = new BinaryFormatter();
-            var ms = new MemoryStream(e.Data);
-            Message?.Invoke((T)formatter.Deserialize(ms));
-        }
-
-        public override string ToString() => $"C{_clientPipe.Id}<{typeof(T).Name}>";
     }
 }

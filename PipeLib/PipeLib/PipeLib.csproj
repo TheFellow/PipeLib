@@ -43,12 +43,16 @@
   <ItemGroup>
     <Compile Include="Core\BasicPipe.cs" />
     <Compile Include="Core\ClientPipe.cs" />
+    <Compile Include="Interfaces\IConnectDisconnect.cs" />
     <Compile Include="Interfaces\IConnectable.cs" />
     <Compile Include="Core\PipeEventArgs.cs" />
     <Compile Include="Core\ServerPipe.cs" />
+    <Compile Include="Interfaces\IWriteMessage.cs" />
     <Compile Include="PipeClient.cs" />
+    <Compile Include="PipeServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Util\Lockable.cs" />
+    <Compile Include="WriteMessage.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
