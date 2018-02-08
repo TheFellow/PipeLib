@@ -79,7 +79,7 @@ namespace PipeLib.Core
             _pipeStream = null;
         }
 
-        /// <summary>Return the <see cref="PipeStream.IsConnected"/> value of the underlying <see cref="PipeStream"/></summary>
+        /// <summary>Return the IsConnected value of the underlying <see cref="PipeStream"/></summary>
         public bool IsConnected => _pipeStream.IsConnected;
 
         /// <summary>Calls <see cref="PipeStream.Flush"/> on the underlying <see cref="PipeStream"/></summary>
@@ -128,7 +128,7 @@ namespace PipeLib.Core
 
         /// <summary>Writes the bytes to the <see cref="PipeStream"/></summary>
         /// <param name="bytes">Array of bytes to write</param>
-        /// <returns></returns>
+        /// <returns><see cref="Task"/> representing the Write operation</returns>
         public Task WriteBytesAsync(byte[] bytes)
         {
             if ((bytes?.Length ?? 0) == 0)

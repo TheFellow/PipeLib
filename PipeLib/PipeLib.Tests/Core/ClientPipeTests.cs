@@ -18,9 +18,6 @@ namespace PipeLib.Tests.Core
 
         private ServerPipe _serverPipe;
         private ClientPipe _clientPipe;
-        private bool _onClientConnect;
-        private bool _onClientPipeClosed;
-        private bool _onClientDataReceived;
         private byte[] _onClientDataReceivedData;
 
         private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
@@ -37,38 +34,20 @@ namespace PipeLib.Tests.Core
             _serverPipe = new ServerPipe(pipeName);
             _clientPipe = new ClientPipe(".", pipeName);
 
-            _onClientConnect = false;
-            _onClientPipeClosed = false;
-            _onClientDataReceived = false;
             _onClientDataReceivedData = null;
 
-            _clientPipe.PipeConnected += OnClientConnect;
-            _clientPipe.PipeClosed += OnClientPipeClosed;
-            _clientPipe.DataReceived += OnClientDataReceived;
-        }
-
-        private void OnClientDataReceived(object sender, PipeEventArgs e)
-        {
-            _onClientDataReceived = true;
-            _onClientDataReceivedData = e.Data;
-            _mreDataReceived.Set();
-        }
-
-        private void OnClientPipeClosed(object sender, EventArgs e)
-        {
-            _onClientPipeClosed = true;
-            _mreDisconnect.Set();
-        }
-
-        private void OnClientConnect(object sender, EventArgs e)
-        {
-            _onClientConnect = true;
-            _mreConnect.Set();
+            _clientPipe.PipeConnected += (o, e) => _mreConnect.Set();
+            _clientPipe.PipeClosed += (o, e) => _mreDisconnect.Set();
+            _clientPipe.DataReceived += (o, e) =>
+            {
+                _onClientDataReceivedData = e.Data;
+                _mreDataReceived.Set();
+            };
         }
 
         private void WaitForClientConnection()
         {
-            _clientPipe.Connect();
+            _clientPipe.ConnectAsync(TIMEOUT_MS);
             if (!_mreConnect.Wait(TIMEOUT_MS))
                 Assert.Inconclusive("The client connection was never established.");
         }
@@ -93,7 +72,7 @@ namespace PipeLib.Tests.Core
                 Assert.Inconclusive(TIMEOUT_CONNECT);
 
             // Assert
-            Assert.IsTrue(_onClientConnect);
+            Assert.IsTrue(_mreConnect.IsSet, TIMEOUT_CONNECT);
             Assert.IsTrue(_clientPipe.IsConnected);
         }
 
@@ -105,13 +84,11 @@ namespace PipeLib.Tests.Core
 
             // Act
             _serverPipe.Close();
-            _mreDisconnect.Wait();
+            _mreDisconnect.Wait(TIMEOUT_MS);
 
             // Assert
-            Assert.IsTrue(_onClientPipeClosed);
+            Assert.IsTrue(_mreDisconnect.IsSet, TIMEOUT_DISCONNECT);
         }
-
-
 
         [TestMethod]
         public void ClientPipe_WhenServerSendsData_InvokesDataReceived()
@@ -123,10 +100,10 @@ namespace PipeLib.Tests.Core
 
             // Act
             _serverPipe.WriteBytesAsync(expectedBytes);
-            _mreDataReceived.Wait();
+            _mreDataReceived.Wait(TIMEOUT_MS);
 
             // Assert
-            Assert.IsTrue(_onClientDataReceived);
+            Assert.IsTrue(_mreDataReceived.IsSet, TIMEOUT_DATA);
             Assert.AreEqual(expectedString, Encoding.UTF8.GetString(_onClientDataReceivedData));
         }
 
