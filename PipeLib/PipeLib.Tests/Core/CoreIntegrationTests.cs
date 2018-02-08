@@ -30,7 +30,7 @@ namespace PipeLib.Tests.Core
             _serverPipe.PipeConnected += (o, e) => connected.Signal();
             _clientPipe.PipeConnected += (o, e) => connected.Signal();
 
-            _clientPipe.Connect();
+            _clientPipe.Connect(TIMEOUT_MS);
 
             // Wait for the connection
             if (!connected.Wait(TIMEOUT_MS))

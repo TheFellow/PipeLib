@@ -38,16 +38,14 @@ namespace PipeLib.Tests.Core
 
             _serverPipe.PipeConnected += (o, e) => _mreConnect.Set();
             _serverPipe.PipeClosed += (o, e) => _mreDisconnect.Set();
-            _serverPipe.DataReceived += OnServerDataReceived;
+            _serverPipe.DataReceived += (o, e) =>
+            {
+                _onServerDataReceivedData = e.Data;
+                _mreDataReceived.Set();
+            };
         }
 
-        private void OnServerDataReceived(object sender, PipeEventArgs e)
-        {
-            _onServerDataReceivedData = e.Data;
-            _mreDataReceived.Set();
-        }
-
-        private void WaitForClientConnection()
+        private void WaitForConnect()
         {
             _clientPipe.ConnectAsync();
             if (!_mreConnect.Wait(TIMEOUT_MS))
@@ -64,10 +62,25 @@ namespace PipeLib.Tests.Core
         #endregion
 
         [TestMethod]
+        public void ServerPipe_WhenClientConnects_InvokesPipeConnected()
+        {
+            // Arrange
+
+            // Act
+            _clientPipe.ConnectAsync();
+            if (!_mreConnect.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_CONNECT);
+
+            // Assert
+            Assert.IsTrue(_mreConnect.IsSet, TIMEOUT_CONNECT);
+            Assert.IsTrue(_serverPipe.IsConnected);
+        }
+
+        [TestMethod]
         public void ServerPipe_WhenClientDisconnects_InvokesPipeClosed()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             _clientPipe.Close();
@@ -76,14 +89,31 @@ namespace PipeLib.Tests.Core
                 Assert.Inconclusive(TIMEOUT_DISCONNECT);
 
             // Assert
-            Assert.IsTrue(_mreDisconnect.IsSet);
+            Assert.IsTrue(_mreDisconnect.IsSet, TIMEOUT_DISCONNECT);
+        }
+
+        [TestMethod]
+        public void ServerPipe_WhenClientSendsData_InvokesDataReceived()
+        {
+            // Arrange
+            WaitForConnect();
+            string expectedString = "Data to transmit";
+            byte[] expectedBytes = Encoding.UTF8.GetBytes(expectedString);
+
+            // Act
+            _clientPipe.WriteBytesAsync(expectedBytes);
+            _mreDataReceived.Wait(TIMEOUT_MS);
+
+            // Assert
+            Assert.IsTrue(_mreDataReceived.IsSet, TIMEOUT_DATA);
+            Assert.AreEqual(expectedString, Encoding.UTF8.GetString(_onServerDataReceivedData));
         }
 
         [TestMethod]
         public async Task ServerPipe_WriteEmptyByteArray_ThrowsInvalidOperationException()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             Task func() => _serverPipe.WriteBytesAsync(new byte[0]);
@@ -96,30 +126,13 @@ namespace PipeLib.Tests.Core
         public async Task ServerPipe_WriteNullByteArray_ThrowsInvalidOperationException()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             Task func() => _serverPipe.WriteBytesAsync(null);
 
             // Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
-        }
-
-        [TestMethod]
-        public void ServerPipe_WhenClientSendsData_InvokesDataReceivedWithCorrectData()
-        {
-            // Arrange
-            WaitForClientConnection();
-            string expected = "Data to transmit";
-            byte[] bytes = Encoding.UTF8.GetBytes(expected);
-
-            // Act
-            _clientPipe.WriteBytesAsync(bytes).GetAwaiter().GetResult();
-            bool dataReceived = _mreDataReceived.Wait(TIMEOUT_MS);
-
-            // Assert
-            Assert.IsTrue(dataReceived);
-            CollectionAssert.AreEqual(bytes, _onServerDataReceivedData);
         }
     }
 }

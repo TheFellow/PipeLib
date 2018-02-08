@@ -34,9 +34,12 @@ using System.Threading.Tasks;
 
 namespace PipeLib.Core
 {
-    public class ClientPipe : BasicPipe, IConnectable
+    public sealed class ClientPipe : BasicPipe, IConnectable
     {
-        protected NamedPipeClientStream ClientPipeStream => (NamedPipeClientStream)_pipeStream;
+        private NamedPipeClientStream ClientPipeStream => (NamedPipeClientStream)_pipeStream;
+
+        public string ServerName { get; private set; }
+        public string PipeName { get; private set; }
 
         /// <summary>Initialize a new instance of <see cref="ClientPipe"/></summary>
         /// <param name="serverName">The server name</param>
@@ -44,34 +47,54 @@ namespace PipeLib.Core
         public ClientPipe(string serverName, string pipeName)
             : base()
         {
+            ServerName = serverName;
+            PipeName = pipeName;
             _pipeStream = new NamedPipeClientStream(serverName, pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         }
 
+        #region IConnectable via ClientPipeStream
+
         /// <summary>Wait for the client to connect. (Blocking)</summary>
-        public void Connect() => ConnectAsync().GetAwaiter().GetResult();
+        public void Connect()
+        {
+            ClientPipeStream.Connect();
+            StartByteReader();
+            RaisePipeConnected();
+        }
 
         /// <summary>Wait for the client to connect given a timeout. (Blocking)</summary>
         /// <param name="timeout">Timeout in milliseconds</param>
-        /// <exception cref="InvalidOperationException">Raised when the connection times out</exception>
-        public void Connect(int timeout) => ConnectAsync(timeout).GetAwaiter().GetResult();
+        /// <exception cref="TimeuotException">Raised when the connection times out</exception>
+        public void Connect(int timeout)
+        {
+            ClientPipeStream.Connect(timeout);
+            ClientConnected();
+        }
 
         /// <summary>Wait for the client to connect</summary>
         /// <returns>A task that represents the asynchronous connect operation.</returns>
-        public Task ConnectAsync() => ClientPipeStream.ConnectAsync()
-            .ContinueWith(t =>
-            {
-                StartByteReader();
-                RaisePipeConnected();
-            });
+        public async Task ConnectAsync()
+        {
+            await ClientPipeStream.ConnectAsync();
+            ClientConnected();
+        }
 
         /// <summary>Wait for the client to connect</summary>
         /// <param name="timeout">Timeout in milliseconds</param>
         /// <returns>A task that represents the asynchronous connect operation.</returns>
-        public Task ConnectAsync(int timeout) => ClientPipeStream.ConnectAsync(timeout)
-            .ContinueWith(t =>
-            {
-                StartByteReader();
-                RaisePipeConnected();
-            });
+        public async Task ConnectAsync(int timeout)
+        {
+            await ClientPipeStream.ConnectAsync(timeout);
+            ClientConnected();
+        }
+
+        private void ClientConnected()
+        {
+            StartByteReader();
+            RaisePipeConnected();
+        }
+
+        #endregion
+
     }
 }

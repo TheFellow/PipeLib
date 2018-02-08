@@ -45,11 +45,11 @@ namespace PipeLib.Tests.Core
             };
         }
 
-        private void WaitForClientConnection()
+        private void WaitForConnect()
         {
-            _clientPipe.ConnectAsync(TIMEOUT_MS);
+            _clientPipe.ConnectAsync();
             if (!_mreConnect.Wait(TIMEOUT_MS))
-                Assert.Inconclusive("The client connection was never established.");
+                Assert.Inconclusive(TIMEOUT_CONNECT);
         }
 
         [TestCleanup]
@@ -80,11 +80,12 @@ namespace PipeLib.Tests.Core
         public void ClientPipe_WhenServerDisconnects_InvokesPipeClosed()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             _serverPipe.Close();
-            _mreDisconnect.Wait(TIMEOUT_MS);
+            if (!_mreDisconnect.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_DISCONNECT);
 
             // Assert
             Assert.IsTrue(_mreDisconnect.IsSet, TIMEOUT_DISCONNECT);
@@ -94,7 +95,7 @@ namespace PipeLib.Tests.Core
         public void ClientPipe_WhenServerSendsData_InvokesDataReceived()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
             string expectedString = "Data to transmit";
             byte[] expectedBytes = Encoding.UTF8.GetBytes(expectedString);
 
@@ -108,26 +109,10 @@ namespace PipeLib.Tests.Core
         }
 
         [TestMethod]
-        public void ClientPipe_ConnectWithTimeout_ThrowsInvalidOperationException()
-        {
-            // Arrange
-            _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
-
-            // Act
-            void act()
-            {
-                _clientPipe.Connect(10);
-            }
-
-            // Assert
-            Assert.ThrowsException<InvalidOperationException>((Action)act);
-        }
-
-        [TestMethod]
         public async Task ClientPipe_WriteEmptyByteArray_ThrowsInvalidOperationException()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             Task func() => _clientPipe.WriteBytesAsync(new byte[0]);
@@ -140,13 +125,39 @@ namespace PipeLib.Tests.Core
         public async Task ClientPipe_WriteNullByteArray_ThrowsInvalidOperationException()
         {
             // Arrange
-            WaitForClientConnection();
+            WaitForConnect();
 
             // Act
             Task func() => _clientPipe.WriteBytesAsync(null);
 
             // Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+        }
+
+        [TestMethod]
+        public void ClientPipe_ConnectWithTimeoutFailure_ThrowsTimeoutException()
+        {
+            // Arrange
+            _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
+
+            // Act
+            Action act = () => _clientPipe.Connect(5);
+
+            // Assert
+            Assert.ThrowsException<TimeoutException>(act);
+        }
+
+        [TestMethod]
+        public void ClientPipe_ConnectAsyncWithTimeoutFailure_ThrowsTimeoutException()
+        {
+            // Arrange
+            _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
+
+            // Act
+            Func<Task> func = () => _clientPipe.ConnectAsync(5);
+
+            // Assert
+            Assert.ThrowsExceptionAsync<TimeoutException>(func);
         }
     }
 }
