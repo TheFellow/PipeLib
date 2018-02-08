@@ -42,10 +42,9 @@ namespace PipeLib.Core
         /// <param name="serverName">The server name</param>
         /// <param name="pipeName">The pipe name</param>
         /// <param name="asyncReaderStart">An <see cref="Action{BasicPipe}"/> used to read from the pipe</param>
-        public ClientPipe(string serverName, string pipeName, Action<BasicPipe> asyncReaderStart)
+        public ClientPipe(string serverName, string pipeName)
             : base()
         {
-            _asyncReaderStart = asyncReaderStart;
             _pipeStream = new NamedPipeClientStream(serverName, pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         }
 
@@ -62,7 +61,7 @@ namespace PipeLib.Core
         public Task ConnectAsync() => ClientPipeStream.ConnectAsync()
             .ContinueWith(t =>
             {
-                _asyncReaderStart(this);
+                StartByteReader();
                 RaisePipeConnected();
             });
 
@@ -72,7 +71,7 @@ namespace PipeLib.Core
         public Task ConnectAsync(int timeout) => ClientPipeStream.ConnectAsync(timeout)
             .ContinueWith(t =>
             {
-                _asyncReaderStart(this);
+                StartByteReader();
                 RaisePipeConnected();
             });
     }

@@ -39,11 +39,9 @@ namespace PipeLib.Core
 
         /// <summary>Initialize a new instance of <see cref="ServerPipe"/></summary>
         /// <param name="pipeName">The pipe name</param>
-        /// <param name="asyncReaderStart">An <see cref="Action{BasicPipe}"/> used to read from the pipe</param>
-        public ServerPipe(string pipeName, Action<BasicPipe> asyncReaderStart)
+        public ServerPipe(string pipeName)
             : base()
         {
-            _asyncReaderStart = asyncReaderStart;
             PipeName = pipeName;
 
             _pipeStream = new NamedPipeServerStream(
@@ -59,7 +57,7 @@ namespace PipeLib.Core
 
         protected void ClientConnected()
         {
-            _asyncReaderStart(this);
+            StartByteReader();
             RaisePipeConnected();
         }
     }

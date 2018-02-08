@@ -41,7 +41,7 @@ namespace PipeLib.Core
     /// <summary>
     /// Abstract base class for wrapping named pipes and their connection
     /// </summary>
-    public abstract class BasicPipe : IDisposable, IWriteStringAsync, IWriteBytesAsync
+    public abstract class BasicPipe : IDisposable
     {
         private const string ZeroLengthError = "Cannot transmit zero-length data.";
 
@@ -57,16 +57,14 @@ namespace PipeLib.Core
 
         /// <summary>The <see cref="PipeStream"/> being wrapped</summary>
         protected PipeStream _pipeStream;
-
-        /// <summary>An <see cref="Action"/> used to start the reader</summary>
-        protected Action<BasicPipe> _asyncReaderStart;
-
+        
         protected static Lockable<int> PipeCount = new Lockable<int>(0);
 
         /// <summary>Initialize a new instance of a <see cref="BasicPipe"/></summary>
         public BasicPipe()
         {
             PipeCount.ExecuteInLock(i => i + 1);
+            StartByteReader();
         }
 
         /// <summary>Close the pipe</summary>
@@ -90,7 +88,7 @@ namespace PipeLib.Core
 
         protected void RaisePipeConnected() => PipeConnected?.Invoke(this, EventArgs.Empty);
 
-        protected void StartByteReader(Action<byte[]> packetReceived)
+        private void StartByteReader(Action<byte[]> packetReceived)
         {
             int intSize = sizeof(int);
             byte[] dataLengthBytes = new byte[intSize];
@@ -126,14 +124,6 @@ namespace PipeLib.Core
             });
         }
 
-        #region Write methods
-
-        /// <summary>Writes a <see cref="string"/> to the <see cref="PipeStream"/></summary>
-        /// <param name="str">The string to write</param>
-        /// <returns></returns>
-        public Task WriteStringAsync(string str) => WriteBytesAsync(
-            Encoding.UTF8.GetBytes(str ?? throw new InvalidOperationException(ZeroLengthError)));
-
         /// <summary>Writes the bytes to the <see cref="PipeStream"/></summary>
         /// <param name="bytes">Array of bytes to write</param>
         /// <returns></returns>
@@ -147,30 +137,11 @@ namespace PipeLib.Core
             return _pipeStream.WriteAsync(allBytes, 0, allBytes.Length);
         }
 
-        #endregion
-
-        #region Read methods
-
         /// <summary>
         /// Reads an array of bytes, where the first [n] bytes (based on the server's intsize) indicates the number of bytes to read
         /// to complete the packet.
         /// </summary>
-        public void StartByteReader() => StartByteReader(bytes => DataReceived?.Invoke(this, new PipeEventArgs(bytes)));
-
-        /// <summary>
-        /// Reads an array of bytes, where the first [n] bytes (based on the server's intsize) indicates the number of bytes to read
-        /// to complete the packet, and invokes the DataReceived event with a string converted from UTF8 of the byte array.
-        /// </summary>
-        public void StartStringReader()
-        {
-            StartByteReader(bytes =>
-            {
-                string str = Encoding.UTF8.GetString(bytes).TrimEnd('\0');
-                DataReceived?.Invoke(this, new PipeEventArgs(str));
-            });
-        }
-
-        #endregion
+        protected void StartByteReader() => StartByteReader(bytes => DataReceived?.Invoke(this, new PipeEventArgs(bytes)));
 
         public override string ToString() => $"Pipe {Id} " + base.ToString();
 

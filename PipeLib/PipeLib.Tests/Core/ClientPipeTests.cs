@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -18,7 +19,7 @@ namespace PipeLib.Tests.Core
         private bool _onClientConnect;
         private bool _onclientPipeClosed;
         private bool _onClientDataReceived;
-        private string _onClientDataReceivedData;
+        private byte[] _onClientDataReceivedData;
 
         private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
         private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
@@ -31,13 +32,13 @@ namespace PipeLib.Tests.Core
             _mreDisconnect.Reset();
             _mreDataReceived.Reset();
 
-            _server = new ServerPipe(pipeName, p => p.StartStringReader());
-            _client = new ClientPipe(".", pipeName, p => p.StartStringReader());
+            _server = new ServerPipe(pipeName);
+            _client = new ClientPipe(".", pipeName);
 
             _onClientConnect = false;
             _onclientPipeClosed = false;
             _onClientDataReceived = false;
-            _onClientDataReceivedData = string.Empty;
+            _onClientDataReceivedData = null;
 
             _client.PipeConnected += OnClientConnect;
             _client.PipeClosed += OnClientPipeClosed;
@@ -47,7 +48,7 @@ namespace PipeLib.Tests.Core
         private void OnClientDataReceived(object sender, PipeEventArgs e)
         {
             _onClientDataReceived = true;
-            _onClientDataReceivedData = e.String;
+            _onClientDataReceivedData = e.Data;
             _mreDataReceived.Set();
         }
 
@@ -114,22 +115,23 @@ namespace PipeLib.Tests.Core
         {
             // Arrange
             WaitForClientConnection();
-            string expected = "Data to transmit";
+            string expectedString = "Data to transmit";
+            byte[] expectedBytes = Encoding.UTF8.GetBytes(expectedString);
 
             // Act
-            _server.WriteStringAsync(expected);
+            _server.WriteBytesAsync(expectedBytes);
             _mreDataReceived.Wait();
 
             // Assert
             Assert.IsTrue(_onClientDataReceived);
-            Assert.AreEqual(expected, _onClientDataReceivedData);
+            Assert.AreEqual(expectedString, _onClientDataReceivedData);
         }
 
         [TestMethod]
         public void ClientPipe_ConnectWithTimeout_ThrowsInvalidOperationException()
         {
             // Arrange
-            _client = new ClientPipe(".", pipeName + ".differentpipe", p => p.StartStringReader());
+            _client = new ClientPipe(".", pipeName + ".differentpipe");
 
             // Act
             void act()
@@ -148,20 +150,7 @@ namespace PipeLib.Tests.Core
             WaitForClientConnection();
 
             // Act
-            Task func() => _client.WriteStringAsync(string.Empty);
-
-            // Assert
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
-        }
-
-        [TestMethod]
-        public async Task ClientPipe_WriteNullString_ThrowsInvalidOperationException()
-        {
-            // Arrange
-            WaitForClientConnection();
-
-            // Act
-            Task func() => _client.WriteStringAsync(null);
+            Task func() => _client.WriteBytesAsync(new byte[0]);
 
             // Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);

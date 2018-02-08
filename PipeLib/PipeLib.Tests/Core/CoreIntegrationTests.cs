@@ -14,8 +14,8 @@ namespace PipeLib.Tests.Core
     {
         private const string pipeName = nameof(CoreIntegrationTests);
 
-        private ServerPipe _stringServer, _binaryServer;
-        private ClientPipe _stringClient, _binaryClient;
+        private ServerPipe _binaryServer;
+        private ClientPipe _binaryClient;
         private Random rand = new Random();
 
         [TestInitialize]
@@ -23,17 +23,12 @@ namespace PipeLib.Tests.Core
         {
             var connected = new CountdownEvent(4);
 
-            _stringServer = new ServerPipe(pipeName, p => p.StartStringReader());
-            _stringClient = new ClientPipe(".", pipeName, p => p.StartStringReader());
-            _binaryServer = new ServerPipe(pipeName, p => p.StartByteReader());
-            _binaryClient = new ClientPipe(".", pipeName, p => p.StartByteReader());
+            _binaryServer = new ServerPipe(pipeName);
+            _binaryClient = new ClientPipe(".", pipeName);
 
-            _stringServer.PipeConnected += (o, e) => connected.Signal();
-            _stringClient.PipeConnected += (o, e) => connected.Signal();
             _binaryServer.PipeConnected += (o, e) => connected.Signal();
             _binaryClient.PipeConnected += (o, e) => connected.Signal();
 
-            _stringClient.Connect();
             _binaryClient.Connect();
 
             // Wait for the connection
@@ -44,8 +39,8 @@ namespace PipeLib.Tests.Core
         [TestCleanup]
         public void TestCleanup()
         {
-            _stringServer?.Dispose();
-            _stringClient?.Dispose();
+            _binaryServer?.Dispose();
+            _binaryClient?.Dispose();
         }
 
         [DataTestMethod]
@@ -74,21 +69,9 @@ namespace PipeLib.Tests.Core
             string stringDataExpected = sb.ToString();
             byte[] binaryDataExpected = Encoding.UTF8.GetBytes(stringDataExpected);
 
-            string stringDataActualServer = string.Empty;
-            string stringDataActualClient = string.Empty;
             byte[] binaryDataActualServer = null;
             byte[] binaryDataActualClient = null;
 
-            _stringServer.DataReceived += (o, e) =>
-            {
-                stringDataActualServer = e.String;
-                signal.Signal();
-            };
-            _stringClient.DataReceived += (o, e) =>
-            {
-                stringDataActualClient = e.String;
-                signal.Signal();
-            };
             _binaryServer.DataReceived += (o, e) =>
             {
                 binaryDataActualServer = e.Data;
@@ -101,8 +84,6 @@ namespace PipeLib.Tests.Core
             };
 
             // Act
-            _stringClient.WriteStringAsync(stringDataExpected);
-            _stringServer.WriteStringAsync(stringDataExpected);
             _binaryServer.WriteBytesAsync(binaryDataExpected);
             _binaryClient.WriteBytesAsync(binaryDataExpected);
 
@@ -110,8 +91,6 @@ namespace PipeLib.Tests.Core
             signal.Wait();
 
             // Assert
-            Assert.AreEqual(stringDataExpected, stringDataActualServer, "String server received incorrect data");
-            Assert.AreEqual(stringDataExpected, stringDataActualClient, "String client received incorrect data");
             CollectionAssert.AreEqual(binaryDataExpected, binaryDataActualServer, "Binary server received incorrect data");
             CollectionAssert.AreEqual(binaryDataExpected, binaryDataActualClient, "Binary client received incorrect data");
         }
