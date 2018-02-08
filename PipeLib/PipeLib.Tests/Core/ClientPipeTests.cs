@@ -47,8 +47,21 @@ namespace PipeLib.Tests.Core
 
         private void WaitForConnect()
         {
-            _clientPipe.ConnectAsync();
+            bool connected = true;
+
+            try
+            {
+                _clientPipe.Connect(TIMEOUT_MS);
+            }
+            catch (TimeoutException)
+            {
+                connected = false;
+            }
+
             if (!_mreConnect.Wait(TIMEOUT_MS))
+                connected = false;
+
+            if (!connected)
                 Assert.Inconclusive(TIMEOUT_CONNECT);
         }
 
@@ -67,7 +80,7 @@ namespace PipeLib.Tests.Core
             // Arrange
 
             // Act
-            _clientPipe.ConnectAsync();
+            _clientPipe.Connect(TIMEOUT_MS);
             if (!_mreConnect.Wait(TIMEOUT_MS))
                 Assert.Inconclusive(TIMEOUT_CONNECT);
 
@@ -101,7 +114,8 @@ namespace PipeLib.Tests.Core
 
             // Act
             _serverPipe.WriteBytesAsync(expectedBytes);
-            _mreDataReceived.Wait(TIMEOUT_MS);
+            if (!_mreDataReceived.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_DATA);
 
             // Assert
             Assert.IsTrue(_mreDataReceived.IsSet, TIMEOUT_DATA);
@@ -141,10 +155,10 @@ namespace PipeLib.Tests.Core
             _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
 
             // Act
-            Action act = () => _clientPipe.Connect(5);
+            void act() => _clientPipe.Connect(5);
 
             // Assert
-            Assert.ThrowsException<TimeoutException>(act);
+            Assert.ThrowsException<TimeoutException>((Action)act);
         }
 
         [TestMethod]
@@ -154,10 +168,9 @@ namespace PipeLib.Tests.Core
             _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
 
             // Act
-            Func<Task> func = () => _clientPipe.ConnectAsync(5);
 
             // Assert
-            Assert.ThrowsExceptionAsync<TimeoutException>(func);
+            Assert.ThrowsExceptionAsync<TimeoutException>(() => _clientPipe.ConnectAsync(5));
         }
     }
 }

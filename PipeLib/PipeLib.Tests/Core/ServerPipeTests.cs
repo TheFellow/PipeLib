@@ -47,8 +47,21 @@ namespace PipeLib.Tests.Core
 
         private void WaitForConnect()
         {
-            _clientPipe.ConnectAsync();
+            bool connected = true;
+
+            try
+            {
+                _clientPipe.Connect(TIMEOUT_MS);
+            }
+            catch (TimeoutException)
+            {
+                connected = false;
+            }
+
             if (!_mreConnect.Wait(TIMEOUT_MS))
+                connected = false;
+
+            if (!connected)
                 Assert.Inconclusive(TIMEOUT_CONNECT);
         }
 
@@ -67,7 +80,7 @@ namespace PipeLib.Tests.Core
             // Arrange
 
             // Act
-            _clientPipe.ConnectAsync();
+            _clientPipe.Connect(TIMEOUT_MS);
             if (!_mreConnect.Wait(TIMEOUT_MS))
                 Assert.Inconclusive(TIMEOUT_CONNECT);
 
@@ -116,10 +129,9 @@ namespace PipeLib.Tests.Core
             WaitForConnect();
 
             // Act
-            Task func() => _serverPipe.WriteBytesAsync(new byte[0]);
 
             // Assert
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _serverPipe.WriteBytesAsync(new byte[0]));
         }
 
         [TestMethod]
@@ -129,10 +141,9 @@ namespace PipeLib.Tests.Core
             WaitForConnect();
 
             // Act
-            Task func() => _serverPipe.WriteBytesAsync(null);
 
             // Assert
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(() => _serverPipe.WriteBytesAsync(null));
         }
     }
 }

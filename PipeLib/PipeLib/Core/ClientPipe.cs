@@ -64,7 +64,7 @@ namespace PipeLib.Core
 
         /// <summary>Wait for the client to connect given a timeout. (Blocking)</summary>
         /// <param name="timeout">Timeout in milliseconds</param>
-        /// <exception cref="TimeuotException">Raised when the connection times out</exception>
+        /// <exception cref="TimeoutException">Raised when the connection times out</exception>
         public void Connect(int timeout)
         {
             ClientPipeStream.Connect(timeout);
