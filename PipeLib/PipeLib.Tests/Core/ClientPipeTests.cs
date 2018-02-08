@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PipeLib.Core;
 
+using static PipeLib.Tests.Constants;
+
 namespace PipeLib.Tests.Core
 {
     [TestClass]
@@ -14,10 +16,10 @@ namespace PipeLib.Tests.Core
 
         private string pipeName = typeof(ClientPipeTests).FullName;
 
-        private ServerPipe _server;
-        private ClientPipe _client;
+        private ServerPipe _serverPipe;
+        private ClientPipe _clientPipe;
         private bool _onClientConnect;
-        private bool _onclientPipeClosed;
+        private bool _onClientPipeClosed;
         private bool _onClientDataReceived;
         private byte[] _onClientDataReceivedData;
 
@@ -32,17 +34,17 @@ namespace PipeLib.Tests.Core
             _mreDisconnect.Reset();
             _mreDataReceived.Reset();
 
-            _server = new ServerPipe(pipeName);
-            _client = new ClientPipe(".", pipeName);
+            _serverPipe = new ServerPipe(pipeName);
+            _clientPipe = new ClientPipe(".", pipeName);
 
             _onClientConnect = false;
-            _onclientPipeClosed = false;
+            _onClientPipeClosed = false;
             _onClientDataReceived = false;
             _onClientDataReceivedData = null;
 
-            _client.PipeConnected += OnClientConnect;
-            _client.PipeClosed += OnClientPipeClosed;
-            _client.DataReceived += OnClientDataReceived;
+            _clientPipe.PipeConnected += OnClientConnect;
+            _clientPipe.PipeClosed += OnClientPipeClosed;
+            _clientPipe.DataReceived += OnClientDataReceived;
         }
 
         private void OnClientDataReceived(object sender, PipeEventArgs e)
@@ -54,7 +56,7 @@ namespace PipeLib.Tests.Core
 
         private void OnClientPipeClosed(object sender, EventArgs e)
         {
-            _onclientPipeClosed = true;
+            _onClientPipeClosed = true;
             _mreDisconnect.Set();
         }
 
@@ -66,16 +68,16 @@ namespace PipeLib.Tests.Core
 
         private void WaitForClientConnection()
         {
-            _client.Connect();
-            if (!_mreConnect.Wait(Constants.TIMEOUT_MS))
+            _clientPipe.Connect();
+            if (!_mreConnect.Wait(TIMEOUT_MS))
                 Assert.Inconclusive("The client connection was never established.");
         }
 
         [TestCleanup]
         public void TestCleanup()
         {
-            _server?.Dispose();
-            _client?.Dispose();
+            _serverPipe?.Dispose();
+            _clientPipe?.Dispose();
         }
 
         #endregion
@@ -86,12 +88,13 @@ namespace PipeLib.Tests.Core
             // Arrange
 
             // Act
-            _client.Connect();
-            _mreConnect.Wait();
+            _clientPipe.ConnectAsync();
+            if (!_mreConnect.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_CONNECT);
 
             // Assert
             Assert.IsTrue(_onClientConnect);
-            Assert.IsTrue(_client.IsConnected);
+            Assert.IsTrue(_clientPipe.IsConnected);
         }
 
         [TestMethod]
@@ -101,11 +104,11 @@ namespace PipeLib.Tests.Core
             WaitForClientConnection();
 
             // Act
-            _server.Close();
+            _serverPipe.Close();
             _mreDisconnect.Wait();
 
             // Assert
-            Assert.IsTrue(_onclientPipeClosed);
+            Assert.IsTrue(_onClientPipeClosed);
         }
 
 
@@ -119,7 +122,7 @@ namespace PipeLib.Tests.Core
             byte[] expectedBytes = Encoding.UTF8.GetBytes(expectedString);
 
             // Act
-            _server.WriteBytesAsync(expectedBytes);
+            _serverPipe.WriteBytesAsync(expectedBytes);
             _mreDataReceived.Wait();
 
             // Assert
@@ -131,12 +134,12 @@ namespace PipeLib.Tests.Core
         public void ClientPipe_ConnectWithTimeout_ThrowsInvalidOperationException()
         {
             // Arrange
-            _client = new ClientPipe(".", pipeName + ".differentpipe");
+            _clientPipe = new ClientPipe(".", pipeName + ".differentpipe");
 
             // Act
             void act()
             {
-                _client.Connect(10);
+                _clientPipe.Connect(10);
             }
 
             // Assert
@@ -150,7 +153,7 @@ namespace PipeLib.Tests.Core
             WaitForClientConnection();
 
             // Act
-            Task func() => _client.WriteBytesAsync(new byte[0]);
+            Task func() => _clientPipe.WriteBytesAsync(new byte[0]);
 
             // Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);
@@ -163,7 +166,7 @@ namespace PipeLib.Tests.Core
             WaitForClientConnection();
 
             // Act
-            Task func() => _client.WriteBytesAsync(null);
+            Task func() => _clientPipe.WriteBytesAsync(null);
 
             // Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(func);

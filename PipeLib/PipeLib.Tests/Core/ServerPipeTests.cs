@@ -18,7 +18,6 @@ namespace PipeLib.Tests.Core
 
         private ServerPipe _serverPipe;
         private ClientPipe _clientPipe;
-        private bool _onServerPipeClosed;
         private string _onServerDataReceivedData;
 
         private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
@@ -35,11 +34,10 @@ namespace PipeLib.Tests.Core
             _serverPipe = new ServerPipe(pipeName);
             _clientPipe = new ClientPipe(".", pipeName);
 
-            _onServerPipeClosed = false;
             _onServerDataReceivedData = string.Empty;
 
-            _serverPipe.PipeConnected += OnServerConnect;
-            _serverPipe.PipeClosed += OnServerPipeClosed;
+            _serverPipe.PipeConnected += (o, e) => _mreConnect.Set();
+            _serverPipe.PipeClosed += (o, e) => _mreDisconnect.Set();
             _serverPipe.DataReceived += OnServerDataReceived;
         }
 
@@ -49,21 +47,11 @@ namespace PipeLib.Tests.Core
             _mreDataReceived.Set();
         }
 
-        private void OnServerPipeClosed(object sender, EventArgs e)
-        {
-            _onServerPipeClosed = true;
-            _mreDisconnect.Set();
-        }
-
-        private void OnServerConnect(object sender, EventArgs e)
-        {
-            _mreConnect.Set();
-        }
-
         private void WaitForClientConnection()
         {
-            _clientPipe.Connect();
-            _mreConnect.Wait();
+            _clientPipe.ConnectAsync();
+            if (!_mreConnect.Wait(TIMEOUT_MS))
+                Assert.Inconclusive(TIMEOUT_CONNECT);
         }
 
         [TestCleanup]
@@ -88,7 +76,7 @@ namespace PipeLib.Tests.Core
                 Assert.Inconclusive(TIMEOUT_DISCONNECT);
 
             // Assert
-            Assert.IsTrue(_onServerPipeClosed);
+            Assert.IsTrue(_mreDisconnect.IsSet);
         }
 
         [TestMethod]
@@ -124,11 +112,11 @@ namespace PipeLib.Tests.Core
             WaitForClientConnection();
             string expected = "Data to transmit";
             byte[] bytes = Encoding.UTF8.GetBytes(expected);
-        
+
             // Act
             _clientPipe.WriteBytesAsync(bytes).GetAwaiter().GetResult();
             bool dataReceived = _mreDataReceived.Wait(TIMEOUT_MS);
-        
+
             // Assert
             Assert.IsTrue(dataReceived);
             Assert.AreEqual(expected, _onServerDataReceivedData);
