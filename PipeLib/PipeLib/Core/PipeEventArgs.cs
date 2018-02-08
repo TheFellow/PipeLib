@@ -37,24 +37,15 @@ namespace PipeLib.Core
     {
         /// <summary>The raw data from a byte[] reader message</summary>
         public byte[] Data { get; set; }
-        /// <summary>The string from a string reader message</summary>
-        public string String { get; set; }
 
-        /// <summary>Creates a new instance of <see cref="PipeEventArgs"/> with a <see cref="string"/> as data</summary>
-        /// <param name="str">The argument string</param>
-        public PipeEventArgs(string str) => String = str;
         /// <summary>Creates a new instance of <see cref="PipeEventArgs"/> with <see cref="byte"/>s as data</summary>
         /// <param name="data">The argument bytes</param>
         public PipeEventArgs(byte[] data) => Data = data;
 
         /// <summary>The length of the string or the byte array depending on type</summary>
-        public int Length => IsString ? String.Length : Data.Length;
-        /// <summary>The data is a string</summary>
-        public bool IsString => Data == null;
-        /// <summary>The data is a byte[]</summary>
-        public bool IsBytes => Data != null;
+        public int Length =>  Data.Length;
         /// <summary>Display the event args as a string</summary>
         /// <returns>The string for string-type args, a byte array with length declaration otherwise</returns>
-        public override string ToString() => IsString ? String : $"byte[{Length}]";
+        public override string ToString() => $"byte[{Length}]";
     }
 }

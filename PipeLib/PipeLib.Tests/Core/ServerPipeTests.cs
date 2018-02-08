@@ -18,7 +18,7 @@ namespace PipeLib.Tests.Core
 
         private ServerPipe _serverPipe;
         private ClientPipe _clientPipe;
-        private string _onServerDataReceivedData;
+        private byte[] _onServerDataReceivedData;
 
         private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
         private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
@@ -34,7 +34,7 @@ namespace PipeLib.Tests.Core
             _serverPipe = new ServerPipe(pipeName);
             _clientPipe = new ClientPipe(".", pipeName);
 
-            _onServerDataReceivedData = string.Empty;
+            _onServerDataReceivedData = null;
 
             _serverPipe.PipeConnected += (o, e) => _mreConnect.Set();
             _serverPipe.PipeClosed += (o, e) => _mreDisconnect.Set();
@@ -43,7 +43,7 @@ namespace PipeLib.Tests.Core
 
         private void OnServerDataReceived(object sender, PipeEventArgs e)
         {
-            _onServerDataReceivedData = e.String;
+            _onServerDataReceivedData = e.Data;
             _mreDataReceived.Set();
         }
 
@@ -119,7 +119,7 @@ namespace PipeLib.Tests.Core
 
             // Assert
             Assert.IsTrue(dataReceived);
-            Assert.AreEqual(expected, _onServerDataReceivedData);
+            CollectionAssert.AreEqual(bytes, _onServerDataReceivedData);
         }
     }
 }
