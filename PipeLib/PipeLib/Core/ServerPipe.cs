@@ -31,10 +31,11 @@ using System.IO.Pipes;
 
 namespace PipeLib.Core
 {
-    public class ServerPipe : BasicPipe
+    public sealed class ServerPipe : BasicPipe
     {
-        protected NamedPipeServerStream ServerPipeStream => (NamedPipeServerStream)_pipeStream;
-        protected string PipeName { get; private set; }
+        private NamedPipeServerStream ServerPipeStream => (NamedPipeServerStream)_pipeStream;
+
+        public string PipeName { get; private set; }
 
         /// <summary>Initialize a new instance of <see cref="ServerPipe"/></summary>
         /// <param name="pipeName">The pipe name</param>
@@ -54,7 +55,7 @@ namespace PipeLib.Core
                 .ContinueWith(t => ClientConnected());
         }
 
-        protected void ClientConnected()
+        private void ClientConnected()
         {
             StartByteReader();
             RaisePipeConnected();

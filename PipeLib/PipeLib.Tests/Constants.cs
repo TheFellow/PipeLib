@@ -12,5 +12,6 @@ namespace PipeLib.Tests
         public const string TIMEOUT_CALLBACK = "Callbacks did not return in time.";
         public const string TIMEOUT_CONNECT = "Connections not established in time.";
         public const string TIMEOUT_DISCONNECT = "Disconnect not triggered in time.";
+        public const string TIMEOUT_DATA = "Data not received in time.";
     }
 }
