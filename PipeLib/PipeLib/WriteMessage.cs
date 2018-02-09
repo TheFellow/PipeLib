@@ -19,17 +19,27 @@ namespace PipeLib
 
         public Task WriteAsync(T obj)
         {
-            var formatter = new BinaryFormatter();
             var ms = new MemoryStream();
-            formatter.Serialize(ms, obj);
+            Serialize(ms, obj);
             return BasicPipe.WriteBytesAsync(ms.ToArray());
+        }
+
+        protected virtual void Serialize(MemoryStream ms, T obj)
+        {
+            var formatter = new BinaryFormatter();
+            formatter.Serialize(ms, obj);
         }
 
         protected void OnDataReceived(object sender, PipeEventArgs e)
         {
-            var formatter = new BinaryFormatter();
             var ms = new MemoryStream(e.Data);
-            OnMessage?.Invoke((T)formatter.Deserialize(ms));
+            OnMessage?.Invoke(Deserialize(ms));
+        }
+
+        protected virtual T Deserialize(MemoryStream ms)
+        {
+            var formatter = new BinaryFormatter();
+            return (T)formatter.Deserialize(ms);
         }
     }
 }
