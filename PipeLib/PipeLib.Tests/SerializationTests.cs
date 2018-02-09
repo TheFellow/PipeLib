@@ -1,14 +1,12 @@
-﻿using System;
-using System.IO;
-using System.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PipeLib.Interfaces;
-using Newtonsoft.Json;
-
-using static PipeLib.Tests.Constants;
-using System.Text;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PipeLib.Tests.Serializers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Threading;
+
+using static PipeLib.Tests.Constants;
 
 namespace PipeLib.Tests
 {
@@ -27,13 +25,20 @@ namespace PipeLib.Tests
         {
             _mreConnect.Reset();
 
-            _pipeClient = new PipeClient<SerializableClass>(PipeName);
-            _pipeServer = new PipeServer<SerializableClass>(PipeName);
+            var ser = new CustomSerializerJson<SerializableClass>();
 
-            _pipeClient.OnConnect += () => _mreConnect.Set();
+            _pipeClient = new PipeClient<SerializableClass>(PipeName)
+            {
+                OnConnect = () => _mreConnect.Set(),
+                Serializer = ser
+            };
+
+            _pipeServer = new PipeServer<SerializableClass>(PipeName)
+            {
+                Serializer = ser
+            };
+
             _pipeClient.Connect(TIMEOUT_MS);
-
-            //JsonConvert.SerializeObject(new object()); // Prime it
 
             if (!_mreConnect.Wait(TIMEOUT_MS))
                 Assert.Inconclusive(TIMEOUT_CONNECT);
@@ -62,10 +67,6 @@ namespace PipeLib.Tests
                 actual = obj;
                 mreSend.Set();
             };
-
-            var ser = new CustomSerializer<SerializableClass>();
-            _pipeClient.Serializer = ser;
-            _pipeServer.Serializer = ser;
 
             // Act
             _pipeClient.WriteAsync(expected);
@@ -101,9 +102,9 @@ namespace PipeLib.Tests
                 mreSend.Set();
             };
 
-            var ser = new CustomSerializer<SerializableClass>();
-            _pipeClient.Serializer = ser;
-            _pipeServer.Serializer = ser;
+            var ms = new MemoryStream();
+            _pipeServer.Serializer.Serialize(ms, expected);
+            Debug.WriteLine(Encoding.UTF8.GetString(ms.ToArray()));
 
             // Act
             _pipeServer.WriteAsync(expected);
@@ -113,23 +114,6 @@ namespace PipeLib.Tests
 
             // Assert
             Assert.AreEqual(expected, actual);
-        }
-    }
-
-    public class CustomSerializer<T> : ISerializer<T>
-        where T : class
-    {
-        public T Deserialize(MemoryStream ms)
-        {
-            string json = Encoding.UTF8.GetString(ms.ToArray());
-            return JsonConvert.DeserializeObject<T>(json);
-        }
-
-        public void Serialize(MemoryStream ms, T obj)
-        {
-            string json = JsonConvert.SerializeObject(obj);
-            byte[] bytes = Encoding.UTF8.GetBytes(json);
-            ms.Write(bytes, 0, bytes.Length);
         }
     }
 }
