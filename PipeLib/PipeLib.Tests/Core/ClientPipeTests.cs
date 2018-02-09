@@ -20,14 +20,14 @@ namespace PipeLib.Tests.Core
         private ClientPipe _clientPipe;
         private byte[] _onClientDataReceivedData;
 
-        private ManualResetEventSlim _mreConnect = new ManualResetEventSlim();
+        private CountdownEvent _connected = new CountdownEvent(0);
         private ManualResetEventSlim _mreDisconnect = new ManualResetEventSlim();
         private ManualResetEventSlim _mreDataReceived = new ManualResetEventSlim();
+
 
         [TestInitialize]
         public void TestInitialize()
         {
-            _mreConnect.Reset();
             _mreDisconnect.Reset();
             _mreDataReceived.Reset();
 
@@ -36,7 +36,9 @@ namespace PipeLib.Tests.Core
 
             _onClientDataReceivedData = null;
 
-            _clientPipe.PipeConnected += (o, e) => _mreConnect.Set();
+            _serverPipe.PipeConnected += (o, e) => _connected.Signal();
+            _clientPipe.PipeConnected += (o, e) => _connected.Signal();
+
             _clientPipe.PipeClosed += (o, e) => _mreDisconnect.Set();
             _clientPipe.DataReceived += (o, e) =>
             {
@@ -47,6 +49,8 @@ namespace PipeLib.Tests.Core
 
         private void WaitForConnect()
         {
+            _connected.Reset(2);
+
             bool connected = true;
 
             try
@@ -58,7 +62,7 @@ namespace PipeLib.Tests.Core
                 connected = false;
             }
 
-            if (!_mreConnect.Wait(TIMEOUT_MS))
+            if (connected && !_connected.Wait(TIMEOUT_MS))
                 connected = false;
 
             if (!connected)
@@ -78,14 +82,15 @@ namespace PipeLib.Tests.Core
         public void ClientPipe_WhenClientConnected_InvokesPipeConnected()
         {
             // Arrange
+            _connected.Reset(2);
 
             // Act
             _clientPipe.Connect(TIMEOUT_MS);
-            if (!_mreConnect.Wait(TIMEOUT_MS))
+            if (!_connected.Wait(TIMEOUT_MS))
                 Assert.Inconclusive(TIMEOUT_CONNECT);
 
             // Assert
-            Assert.IsTrue(_mreConnect.IsSet, TIMEOUT_CONNECT);
+            Assert.IsTrue(_connected.IsSet, TIMEOUT_CONNECT);
             Assert.IsTrue(_clientPipe.IsConnected);
         }
 
