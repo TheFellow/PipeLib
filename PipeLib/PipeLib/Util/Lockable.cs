@@ -1,4 +1,8 @@
-﻿using System;
+﻿//
+// This class is copied from the Tungsten library here:
+// https://github.com/mode51/Tungsten/blob/master/Src/Tungsten.Standard1_0/Lockable.cs
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
