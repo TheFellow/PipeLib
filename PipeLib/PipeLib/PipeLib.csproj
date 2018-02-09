@@ -48,6 +48,7 @@
     <Compile Include="Core\PipeEventArgs.cs" />
     <Compile Include="Core\ServerPipe.cs" />
     <Compile Include="Interfaces\IWriteMessage.cs" />
+    <Compile Include="Interfaces\ISerializer.cs" />
     <Compile Include="PipeClient.cs" />
     <Compile Include="PipeServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

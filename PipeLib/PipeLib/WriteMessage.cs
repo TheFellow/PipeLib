@@ -16,6 +16,7 @@ namespace PipeLib
         protected BasicPipe BasicPipe { get; set; }
 
         public Action<T> OnMessage { get; set; }
+        public ISerializer<T> Serializer { get; set; }
 
         public Task WriteAsync(T obj)
         {
@@ -24,10 +25,17 @@ namespace PipeLib
             return BasicPipe.WriteBytesAsync(ms.ToArray());
         }
 
-        protected virtual void Serialize(MemoryStream ms, T obj)
+        private void Serialize(MemoryStream ms, T obj)
         {
-            var formatter = new BinaryFormatter();
-            formatter.Serialize(ms, obj);
+            if (Serializer != null)
+            {
+                Serializer.Serialize(ms, obj);
+            }
+            else
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(ms, obj);
+            }
         }
 
         protected void OnDataReceived(object sender, PipeEventArgs e)
@@ -36,10 +44,17 @@ namespace PipeLib
             OnMessage?.Invoke(Deserialize(ms));
         }
 
-        protected virtual T Deserialize(MemoryStream ms)
+        private T Deserialize(MemoryStream ms)
         {
-            var formatter = new BinaryFormatter();
-            return (T)formatter.Deserialize(ms);
+            if (Serializer != null)
+            {
+                return Serializer.Deserialize(ms);
+            }
+            else
+            {
+                var formatter = new BinaryFormatter();
+                return (T)formatter.Deserialize(ms);
+            }
         }
     }
 }
