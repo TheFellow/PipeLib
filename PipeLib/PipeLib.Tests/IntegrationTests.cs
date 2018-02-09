@@ -36,7 +36,7 @@ namespace PipeLib.Tests
         }
 
         [TestMethod]
-        public void Client_WriteAsync_TransmitsDataToServer()
+        public void Client_WriteAsync_TransmitsStringToServer()
         {
             // Arrange
             var mreMessage = new ManualResetEventSlim();
@@ -58,7 +58,7 @@ namespace PipeLib.Tests
         }
 
         [TestMethod]
-        public void Server_WriteAsync_TransmitsDataToClient()
+        public void Server_WriteAsync_TransmitsStringToClient()
         {
             // Arrange
             var mreMessage = new ManualResetEventSlim();
